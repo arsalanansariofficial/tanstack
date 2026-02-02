@@ -108,6 +108,9 @@ export default function App() {
           validators={{
             onDynamicAsyncDebounceMs: 300,
             async onDynamicAsync({ value }) {
+              if (form.state.submissionAttempts > 1 && form.state.isSubmitting)
+                return;
+
               const result = signupSchema.shape.email.safeParse(value);
               if (!result.success) return;
 
@@ -134,7 +137,9 @@ export default function App() {
                 className={`${!field.state.meta.isValid ? 'outline-red-500 outline' : 'outline'} px-2 py-1 rounded`}
                 onChange={e => field.handleChange(e.target.value)}
               />
-              {field.state.meta.isValidating && <span>Validating...</span>}
+              {(form.state.submissionAttempts === 1 ||
+                !form.state.isSubmitting) &&
+                field.state.meta.isValidating && <span>Validating...</span>}
               {!field.state.meta.isValid && (
                 <ul>
                   {field.state.meta.errors.map((e, i) => (
