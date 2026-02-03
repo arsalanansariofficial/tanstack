@@ -1,6 +1,8 @@
 import z from 'zod';
 import { revalidateLogic, useForm } from '@tanstack/react-form';
 
+type User = z.infer<typeof signupSchema>;
+
 const signupSchema = z.object({
   name: z
     .string('Name should be valid.')
@@ -50,8 +52,6 @@ const signupSchema = z.object({
     .transform(val => (val && val.length ? val : undefined))
     .optional(),
 });
-
-type User = z.infer<typeof signupSchema>;
 
 export default function App() {
   const form = useForm({
