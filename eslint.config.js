@@ -10,6 +10,7 @@ export default defineConfig([
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: { globals: globals.browser },
+    rules: [{ 'react-hooks/incompatible-library': false }],
     extends: [
       js.configs.recommended,
       reactRefresh.configs.vite,
