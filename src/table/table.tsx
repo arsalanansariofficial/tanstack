@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import {
   SortableContext,
   useSortable,
@@ -12,6 +12,7 @@ import {
   useReactTable,
   getCoreRowModel,
   type Row,
+  getFilteredRowModel,
 } from '@tanstack/react-table';
 
 import {
@@ -25,6 +26,7 @@ import {
   type DragEndEvent,
   type UniqueIdentifier,
 } from '@dnd-kit/core';
+import { useDebounce } from 'use-debounce';
 
 export function DraggableRow<T extends { id: number }>(props: { row: Row<T> }) {
   const { row } = props;
@@ -47,9 +49,9 @@ export function DraggableRow<T extends { id: number }>(props: { row: Row<T> }) {
       data-dragging={isDragging}
       data-state={row.getIsSelected() && 'selected'}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80 border"
+      className="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80 border-b last:border-b-0"
     >
-      {row.getAllCells().map(cell => (
+      {row.getVisibleCells().map(cell => (
         <td key={cell.id} className="text-center">
           {flexRender(cell.column.columnDef.cell, cell.getContext())}
         </td>
@@ -97,6 +99,13 @@ export default function App() {
     },
   ]);
 
+  const [name, setName] = useState('');
+  const [debouncedName] = useDebounce(name, 300);
+
+  useEffect(() => {
+    table.getColumn('name')?.setFilterValue(debouncedName);
+  }, [debouncedName]);
+
   const dataIds = useMemo<UniqueIdentifier[]>(
     () => data.map(({ id }) => id),
     [data],
@@ -105,6 +114,8 @@ export default function App() {
   const table = useReactTable({
     data,
     getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    state: { columnVisibility: { name: false } },
     columns: [
       {
         header: 'First Name',
@@ -115,6 +126,10 @@ export default function App() {
         header: 'Last Name',
         accessorKey: 'lastName',
         cell: info => info.getValue(),
+      },
+      {
+        id: 'name',
+        accessorFn: row => `${row.firstName} ${row.lastName}`,
       },
       { header: 'Age', accessorKey: 'age', cell: info => info.getValue() },
       {
@@ -201,7 +216,17 @@ export default function App() {
   }
 
   return (
-    <main className="min-h-screen content-center justify-items-center">
+    <main className="min-h-screen content-center justify-items-center space-y-2">
+      <section className="w-2/3 grid">
+        <input
+          type="text"
+          placeholder="Name"
+          className="border px-2 py-1 rounded"
+          onChange={e => {
+            setName(e.target.value);
+          }}
+        />
+      </section>
       <DndContext
         id={sortableId}
         sensors={sensors}
@@ -209,34 +234,36 @@ export default function App() {
         collisionDetection={closestCenter}
         modifiers={[restrictToVerticalAxis]}
       >
-        <table>
-          <thead>
-            {table.getHeaderGroups().map(headerGroup => (
-              <tr key={headerGroup.id} className="border">
-                {headerGroup.headers.map(header => (
-                  <th key={header.id} className="p-1">
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            <SortableContext
-              items={dataIds}
-              strategy={verticalListSortingStrategy}
-            >
-              {table.getRowModel().rows.map(row => (
-                <DraggableRow key={row.id} row={row} />
+        <section className="w-2/3 border rounded grid">
+          <table>
+            <thead>
+              {table.getHeaderGroups().map(headerGroup => (
+                <tr key={headerGroup.id} className="border-b">
+                  {headerGroup.headers.map(header => (
+                    <th key={header.id} className="p-1">
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                    </th>
+                  ))}
+                </tr>
               ))}
-            </SortableContext>
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              <SortableContext
+                items={dataIds}
+                strategy={verticalListSortingStrategy}
+              >
+                {table.getRowModel().rows.map(row => (
+                  <DraggableRow key={row.id} row={row} />
+                ))}
+              </SortableContext>
+            </tbody>
+          </table>
+        </section>
       </DndContext>
     </main>
   );
