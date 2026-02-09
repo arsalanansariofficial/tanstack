@@ -1,18 +1,19 @@
+import { CSS } from '@dnd-kit/utilities';
 import { useEffect, useId, useMemo, useState } from 'react';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import {
-  SortableContext,
   useSortable,
+  SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
-import { CSS } from '@dnd-kit/utilities';
 
 import {
+  type Row,
   flexRender,
   useReactTable,
   getCoreRowModel,
-  type Row,
   getFilteredRowModel,
+  getSortedRowModel,
 } from '@tanstack/react-table';
 
 import {
@@ -99,12 +100,21 @@ export default function App() {
     },
   ]);
 
-  const [name, setName] = useState('');
-  const [debouncedName] = useDebounce(name, 300);
+  const [filter, setFilter] = useState({
+    name: '',
+    age: '',
+    visits: '',
+    progress: '',
+    priority: '',
+  });
+
+  const [debouncedFilter] = useDebounce(filter, 300);
 
   useEffect(() => {
-    table.getColumn('name')?.setFilterValue(debouncedName);
-  }, [debouncedName]);
+    Object.entries(debouncedFilter).forEach(([key, value]) => {
+      table.getColumn(key)?.setFilterValue(value.trim() || '');
+    });
+  }, [debouncedFilter]);
 
   const dataIds = useMemo<UniqueIdentifier[]>(
     () => data.map(({ id }) => id),
@@ -114,11 +124,19 @@ export default function App() {
   const table = useReactTable({
     data,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     state: { columnVisibility: { name: false } },
     columns: [
       {
-        header: 'First Name',
+        header: header => (
+          <button
+            className="cursor-pointer"
+            onClick={() => header.column.toggleSorting()}
+          >
+            First name
+          </button>
+        ),
         accessorKey: 'firstName',
         cell: info => info.getValue(),
       },
@@ -131,20 +149,28 @@ export default function App() {
         id: 'name',
         accessorFn: row => `${row.firstName} ${row.lastName}`,
       },
-      { header: 'Age', accessorKey: 'age', cell: info => info.getValue() },
+      {
+        header: 'Age',
+        accessorKey: 'age',
+        filterFn: 'equalsString',
+        cell: info => info.getValue(),
+      },
       {
         header: 'Visits',
         accessorKey: 'visits',
+        filterFn: 'equalsString',
         cell: info => info.getValue(),
       },
       {
         header: 'Progress',
         accessorKey: 'progress',
+        filterFn: 'equalsString',
         cell: info => info.getValue(),
       },
       {
         header: 'Priority',
         accessorKey: 'priority',
+        filterFn: 'equalsString',
         cell: info => info.getValue(),
       },
     ],
@@ -217,13 +243,45 @@ export default function App() {
 
   return (
     <main className="min-h-screen content-center justify-items-center space-y-2">
-      <section className="w-2/3 grid">
+      <section className="w-2/3 grid grid-cols-5 gap-2">
         <input
           type="text"
           placeholder="Name"
           className="border px-2 py-1 rounded"
           onChange={e => {
-            setName(e.target.value);
+            setFilter({ ...filter, name: e.target.value });
+          }}
+        />
+        <input
+          type="number"
+          placeholder="Age"
+          className="border px-2 py-1 rounded"
+          onChange={e => {
+            setFilter({ ...filter, age: e.target.value });
+          }}
+        />
+        <input
+          type="number"
+          placeholder="Visits"
+          className="border px-2 py-1 rounded"
+          onChange={e => {
+            setFilter({ ...filter, visits: e.target.value });
+          }}
+        />
+        <input
+          type="number"
+          placeholder="Progress"
+          className="border px-2 py-1 rounded"
+          onChange={e => {
+            setFilter({ ...filter, progress: e.target.value });
+          }}
+        />
+        <input
+          type="number"
+          placeholder="Priority"
+          className="border px-2 py-1 rounded"
+          onChange={e => {
+            setFilter({ ...filter, priority: e.target.value });
           }}
         />
       </section>
